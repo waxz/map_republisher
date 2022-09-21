@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="mqtt_server_ip"     default="10.23.0.138"/>
+
+  <arg name="agvSn"     default="agv-01"/>
+
+    <node name="map_republisher" pkg="map_republisher" type="map_republisher" output="screen">
+        <param name="mqtt_server_ip"    value="$(arg mqtt_server_ip)"/>
+        <param name="agvSn"    value="$(arg agvSn)"/>
+    
+
+    </node>
+</launch>
