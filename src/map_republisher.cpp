@@ -167,125 +167,7 @@ private:
     RealSinleton(const std::string &name_) : name(name_) {}
 };
 
-#if 0
-class MqttClient: public mosqpp::mosquittopp{
-
-public:
-    MqttClient(const char *id=NULL, bool clean_session=true):mosqpp::mosquittopp(id,clean_session){
-
-    }
-public:
-
-    struct ConnOpt{
-        std::string server_ip;
-        int server_port;
-        int keepalive = 60;
-        std::string will_topic;
-        std::string will_massage;
-    };
-    ConnOpt m_conn_opt;
-
-
-
-
-
-
-    struct SubOption{
-        std::string topic;
-        int qos;
-    };
-    std::vector<SubOption> m_sub_opts;
-    std::map<const char*, int> m_subs_topic_qos;
-
-    void addSubOpt(const char* topic,int qos){
-        m_subs_topic_qos.emplace(topic, qos);
-    }
-    void listSubOpts(){
-        std::cout << "\n  listSubOpts\n" <<std::endl;
-        for(auto it = m_subs_topic_qos.begin();it != m_subs_topic_qos.end();it++){
-            std::cout << "-- k: " << it->first << ", v: " << it->second << std::endl;
-        }
-    }
-
-
-
-    void on_connect(int reason_code){
-
-        int rc;
-        /* Print out the connection result. mosquitto_connack_string() produces an
-         * appropriate string for MQTT v3.x clients, the equivalent for MQTT v5.0
-         * clients is mosquitto_reason_string().
-         */
-        printf("on_connect: %s\n", mosquitto_connack_string(reason_code));
-        if(reason_code != 0){
-            /* If the connection fails for any reason, we don't want to keep on
-             * retrying in this example, so disconnect. Without this, the client
-             * will attempt to reconnect. */
-            disconnect();
-        }
-
-        for(auto it = m_subs_topic_qos.begin();it != m_subs_topic_qos.end();it++){
-            std::cout << "-- k: " << it->first << ", v: " << it->second << std::endl;
-            /* Making subscriptions in the on_connect() callback means that if the
-             * connection drops and is automatically resumed by the client, then the
-             * subscriptions will be recreated when the client reconnects. */
-            rc = subscribe( NULL, it->first, it->second);
-            if(rc != MOSQ_ERR_SUCCESS){
-                fprintf(stderr, "Error subscribing: %s\n", mosquitto_strerror(rc));
-                /* We might as well disconnect if we were unable to subscribe */
-                disconnect();
-
-            }
-        }
-
-    }
-
-    /* Callback called when the broker sends a SUBACK in response to a SUBSCRIBE. */
-    void on_subscribe( int mid, int qos_count, const int *granted_qos)
-    {
-        int i;
-        bool have_subscription = false;
-
-        /* In this example we only subscribe to a single topic at once, but a
-         * SUBSCRIBE can contain many topics at once, so this is one way to check
-         * them all. */
-        for(i=0; i<qos_count; i++){
-            printf("on_subscribe: %d:granted qos = %d\n", i, granted_qos[i]);
-            if(granted_qos[i] <= 2){
-                have_subscription = true;
-            }
-        }
-        if(!have_subscription){
-            /* The broker rejected all of our subscriptions, we know we only sent
-             * the one SUBSCRIBE, so there is no point remaining connected. */
-            fprintf(stderr, "Error: All subscriptions rejected.\n");
-            disconnect();
-        }
-    }
-
-    std::function<int(const char*, const char*)> message_callback_func;
-
-
-    /* Callback called when the client receives a message. */
-    void on_message(const struct mosquitto_message *msg)
-    {
-        /* This blindly prints the payload, but the payload can be anything so take care. */
-        printf("sub receive: %s %d %s\n", msg->topic, msg->qos, (char *)msg->payload);
-        message_callback_func(msg->topic, (char *)msg->payload);
-    }
-    void on_disconnect(int rc)
-    {
-        std::cerr << "mosq disconnect try to reconnect" << std::endl;
-        reconnect_async();
-    }
-    virtual ~MqttClient() {
-        std::cout << "~MqttClient"<<std::endl;
-
-        mosquitto_lib_cleanup();
-    }
-
-};
-#endif
+ 
 
 int main(int argc, char **argv) {
 
@@ -409,9 +291,11 @@ int main(int argc, char **argv) {
                 int i = r / map_mat_uchar.cols;
                 int j = r % map_mat_uchar.cols;
                 int i_flip = height - i-1;
-                if (map_mat.ptr<signed char>(i)[j] == 0) {
+                auto& v = map_mat.ptr<signed char>(i)[j];
+                
+                if ( (v >= 0) && (v<= 49)) {
                     map_mat_uchar.ptr<unsigned char>(i_flip)[j] = 254;
-                } else if (map_mat.ptr<signed char>(i)[j] == 100) {
+                } else if ((v >= 50) && (v<= 100)) {
                     map_mat_uchar.ptr<unsigned char>(i_flip)[j] = 0;
                 } else {
                     map_mat_uchar.ptr<unsigned char>(i_flip)[j] = 205;
